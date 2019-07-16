@@ -387,7 +387,7 @@ def enforce_confinement(s,field,val,fieldstr,xend):
    elif fieldstr == 'uvel':
       s.uvel_extend[0] = field
    elif fieldstr == 'topg':
-      s.topg = field
+      s.topg[0] = field
    elif fieldstr == 'damage':
       s.damage[0] = field
 

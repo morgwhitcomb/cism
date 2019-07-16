@@ -1392,10 +1392,14 @@ contains
                                          model%velocity%uvel(:,:,:) * vel0,                    &  ! m/s
                                          model%velocity%vvel(:,:,:) * vel0,                    &  ! m/s
                                          thck_unscaled(:,:),                                   &  ! m
+                                         model%numerics%thklim * thk0,                         &  ! m
+                                         model%climate%eus * thk0,                             &  ! m
+                                         model%geometry%topg * thk0,                           &  ! m
                                          model%geometry%ntracers,                              &
                                          model%geometry%tracers(:,:,:,:),                      &
                                          model%geometry%tracers_usrf(:,:,:),                   &
                                          model%geometry%tracers_lsrf(:,:,:),                   &
+                                         model%options%which_ho_calving_front,                 &
                                          model%options%which_ho_vertical_remap,                &
                                          upwind_transport_in = do_upwind_transport)
 

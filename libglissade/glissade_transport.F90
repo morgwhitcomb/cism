@@ -553,9 +553,11 @@
                                          nx,           ny,           &
                                          nlyr,         sigma,        &
                                          uvel,         vvel,         &
-                                         thck,                       &
+                                         thck,         thklim,       &
+                                         eus,          topg,         &
                                          ntracers,     tracers,      &
                                          tracers_usrf, tracers_lsrf, &
+                                         which_ho_calving_front,     &
                                          vert_remap_accuracy,        &
                                          upwind_transport_in)
 
@@ -574,16 +576,23 @@
       !
       ! author William H. Lipscomb, LANL
       !
+      ! Compute calving front masks as needed to handle inactive calving front
+      ! cells
+
+      use glissade_masks, only: glissade_get_masks
+
       ! input/output arguments
 
       real(dp), intent(in) ::  &
          dt,                   &! time step (s)
-         dx, dy                 ! gridcell dimensions (m)
-                                ! (cells assumed to be rectangular)
+         dx, dy,               &! gridcell dimensions (m) (cells assumed to be rectangular)
+         thklim,               &! minimum ice thickness for active cells (m)
+         eus                    ! eustatic sea level (m), = 0. by default
 
       integer, intent(in) ::   &
          nx, ny,               &! horizontal array size
-         nlyr                   ! number of vertical layers
+         nlyr,                 &! number of vertical layers
+         which_ho_calving_front ! = 1 for subgrid calving-front scheme, else = 0
 
       real(dp), dimension(nlyr+1), intent(in) ::  &
          sigma                  ! layer interfaces in sigma coordinates
@@ -592,6 +601,9 @@
       real(dp), dimension(nlyr+1,nx-1,ny-1), intent(in) ::  &
          uvel, vvel             ! horizontal velocity components (m/s)
                                 ! (defined at horiz cell corners, vertical interfaces)
+
+      real(dp), dimension(nx,ny), intent(in) ::  &
+         topg                   ! elevation of topography (m)
 
       real(dp), dimension(nx,ny), intent(inout) ::  &
          thck                   ! ice thickness (m), defined at horiz cell centers
@@ -621,8 +633,14 @@
          ilo,ihi,jlo,jhi ,&! beginning and end of physical domain
          nt                ! tracer index
 
+      integer, dimension (nx,ny) ::    &
+         ice_mask           ,&! = 1 where ice is present (thck > thklim), else = 0
+         calving_front_mask   ! = 1 where ice is floating and borders at least one ocean cell, else = 0
+
       real(dp), dimension (nx,ny) ::     &
-         thck_mask         ! = 1. if ice is present, = 0. otherwise
+         thck_mask          ,&! = 1. if ice is present, = 0. otherwise
+         thck_eff           ,&! effective ice thickness (m)
+         thck_calving_front   ! effective ice thickness at the calving front (m)
 
       real(dp), dimension (nx-1,ny-1) ::     &
          uvel_layer      ,&! uvel averaged to layer midpoint (m/s)
@@ -700,8 +718,28 @@
       ! Fill layer thickness array.
       !-------------------------------------------------------------------
 
+      ! Convert thickness into effective thickness, to account for
+      ! partially-filled cells at the calving front
+      call glissade_get_masks(nx,       ny,     &
+                              thck,     topg,   &
+                              eus,      thklim, &
+                              ice_mask,         &
+                              which_ho_calving_front = which_ho_calving_front, &
+                              calving_front_mask = calving_front_mask, &
+                              thck_calving_front = thck_calving_front)
+
+      do j = 1, ny
+         do i = 1, nx
+            if (calving_front_mask(i,j) == 1) then
+               thck_eff(i,j) = thck_calving_front(i,j)
+            else
+               thck_eff(i,j) = thck(i,j)
+            endif
+         enddo
+      enddo
+
       do k = 1, nlyr
-         thck_layer(:,:,k) = thck(:,:) * (sigma(k+1) - sigma(k))
+         thck_layer(:,:,k) = thck_eff(:,:) * (sigma(k+1) - sigma(k))
       enddo
 
       !-------------------------------------------------------------------

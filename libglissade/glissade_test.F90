@@ -789,10 +789,14 @@ contains
                                       nz-1,                      model%numerics%sigma,      &
                                       uvel(:,:,:)/scyr,          vvel(:,:,:)/scyr,          &
                                       model%geometry%thck(:,:),                             &
+                                      model%numerics%thklim*thk0,                           &
+                                      model%climate%eus*thk0,                               &
+                                      model%geometry%topg*thk0,                             &
                                       model%geometry%ntracers,                              &
                                       model%geometry%tracers(:,:,:,:),                      &
                                       model%geometry%tracers_usrf(:,:,:),                   &
                                       model%geometry%tracers_lsrf(:,:,:),                   &
+                                      model%options%which_ho_calving_front,                 &
                                       model%options%which_ho_vertical_remap,                &
                                       upwind_transport_in = do_upwind_transport)
 
